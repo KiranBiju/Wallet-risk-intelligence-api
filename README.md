@@ -11,7 +11,7 @@ Production-grade ML + RAG-based API to detect risky blockchain wallets in real-t
 ## Tech Stack
 - FastAPI
 - PostgreSQL
-- Redis
+- Python
 - Scikit-learn
 - Groq API
 
