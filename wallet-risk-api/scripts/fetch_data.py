@@ -9,28 +9,42 @@ API_KEY = os.getenv("ETHERSCAN_API_KEY")
 BASE_URL = "https://api.etherscan.io/v2/api"
 
 
-def get_transactions(wallet_address):
-    url = BASE_URL
-    params = {
-        "module": "account",
-        "action": "txlist",
-        "address": wallet_address,
-        "startblock": 0,
-        "endblock": 99999999,
-        "sort": "asc",
-        "chainid": 1,
-        "apikey": API_KEY
-    }
+def get_transactions(wallet_address, max_pages=2):
+    all_txs = []
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    for page in range(1, max_pages + 1):
+        params = {
+            "module": "account",
+            "action": "txlist",
+            "address": wallet_address,
+            "startblock": 0,
+            "endblock": 99999999,
+            "page": page,
+            "offset": 100,
+            "sort": "desc",
+            "chainid": 1,
+            "apikey": API_KEY
+        }
 
-    print("FULL RESPONSE:", data)
-    if data["status"] != "1":
-        print("ERROR:", data["message"], data["result"])
-        return []
+        try:
+            response = requests.get(BASE_URL, params=params, timeout=10)
+            data = response.json()
 
-    return data["result"]
+            if data.get("status") != "1":
+                return []
+
+            txs = data.get("result", [])
+
+            if not txs:
+                break
+
+            all_txs.extend(txs)
+
+        except Exception as e:
+            print("Error:", e)
+            return []
+
+    return all_txs
 
 if __name__ == "__main__":
     wallet = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"

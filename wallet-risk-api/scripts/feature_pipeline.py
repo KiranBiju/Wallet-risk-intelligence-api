@@ -6,6 +6,23 @@ import time
 from fetch_data import get_transactions
 from wallet_crawler import crawl_wallets
 
+def assign_label(features):
+    score = 0
+
+    if features["tx_frequency"] > 200:
+        score += 1
+
+    if features["avg_tx_value"] > 5:
+        score += 1
+
+    if features["high_risk_interactions"] > 3:
+        score += 1
+
+    if features["contract_calls"] > 50:
+        score += 1
+
+    return 1 if score >= 2 else 0
+
 
 #FEATURE EXTRACTION
 
@@ -31,37 +48,40 @@ def extract_features(wallet):
         if len(df) == 0:
             return None
 
-        #FEATURES
+        #BASIC FEATURES
 
         tx_frequency = len(df)
 
-        #Skip low-activity wallets (NEW)
+        #Skip low-activity wallets
+
         if tx_frequency < 5:
             return None
 
         avg_tx_value = df["value"].mean()
-
         unique_interactions = df["to"].nunique()
-
         contract_calls = (df["input"] != "0x").sum()
-
         high_risk_interactions = df[df["value"] > 10].shape[0]
 
         #ADVANCED FEATURES
 
         time_span_days = (df["timeStamp"].max() - df["timeStamp"].min()).days + 1
-
-        if time_span_days == 0:
-            time_span_days = 1
+        time_span_days = max(time_span_days, 1)
 
         tx_per_day = tx_frequency / time_span_days
 
         value_std = df["value"].std()
         max_tx_value = df["value"].max()
 
-        #FINAL OUTPUT
+        #HANDLE EDGE CASES
 
-        return {
+        if pd.isna(value_std):
+            value_std = 0
+
+        if pd.isna(avg_tx_value):
+            avg_tx_value = 0
+
+        #FINAL FEATURE DICT
+        features = {
             "wallet": wallet,
             "tx_frequency": tx_frequency,
             "avg_tx_value": avg_tx_value,
@@ -73,6 +93,11 @@ def extract_features(wallet):
             "max_tx_value": max_tx_value
         }
 
+        #ADD LABEL
+        features["label"] = assign_label(features)
+
+        return features
+
     except Exception as e:
         print(f"Error processing wallet {wallet}: {e}")
         return None
@@ -81,26 +106,45 @@ def extract_features(wallet):
 #DATASET BUILDER
 
 def build_dataset(wallets, output_file="db/wallet_dataset.csv"):
-    data = []
+    rows = []
 
     for wallet in tqdm(wallets):
-        features = extract_features(wallet)
+        try:
+            print(f"Processing: {wallet}")
 
-        if features:
-            data.append(features)
+            start_time = time.time()
 
-        #Avoid API rate limits
-        time.sleep(0.2)
+            #CALL ONLY ONCE
+            features = extract_features(wallet)
 
-    df = pd.DataFrame(data)
+            #Skip slow wallets
+            if time.time() - start_time > 15:
+                print(f"Skipping slow wallet: {wallet}")
+                continue  
 
-    #Save dataset
+            if features:
+                rows.append(features)
+
+            time.sleep(0.2)
+
+        except Exception as e:
+            print(f"Error processing {wallet}: {e}")
+            continue
+
+    df = pd.DataFrame(rows)
+
+    # Save dataset
     df.to_csv(output_file, index=False)
 
-    print(f"\nDataset saved as {output_file}")
+    print(f"\n Dataset saved as {output_file}")
     print(f"Total wallets processed: {len(df)}")
 
-    #Check uniqueness
+    if not df.empty:
+        print("Unique wallets:", df["wallet"].nunique())
+
+    return df
+
+    #NEW: Check uniqueness
     if not df.empty:
         print("Unique wallets:", df["wallet"].nunique())
 
@@ -117,12 +161,10 @@ if __name__ == "__main__":
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
     ]
 
-    #Crawl real wallets
+    # Crawl real wallets
     wallets = crawl_wallets(seed_wallets, target_size=200)
 
     print(f"Total wallets collected: {len(wallets)}")
 
-    #Build dataset
+    # Build dataset
     dataset = build_dataset(wallets)
-
-    
