@@ -1,55 +1,70 @@
 from services.model_service import predict_risk
+from services.explanation_service import generate_explanation
 
 
 def assess_wallet_risk(wallet, features):
-    #No transactions
+
+    #ZERO TRANSACTIONS
     
     if features["tx_frequency"] == 0:
+        explanation = generate_explanation(features)
+
         return {
             "wallet": wallet,
+            "risk_score": 0.0,
             "risk_level": "LOW",
             "confidence": 1.0,
-            "reason": "No transaction history",
+            "explanation": explanation,
             "source": "rule_engine"
         }
 
     #RULE ENGINE
 
     if features["high_risk_interactions"] >= 5:
+        explanation = generate_explanation(features)
+
         return {
             "wallet": wallet,
+            "risk_score": 0.9,
             "risk_level": "HIGH",
             "confidence": 0.95,
-            "reason": "Multiple high-risk interactions detected",
+            "explanation": explanation,
             "source": "rule_engine"
         }
 
     if features["avg_tx_value"] > 10:
+        explanation = generate_explanation(features)
+
         return {
             "wallet": wallet,
+            "risk_score": 0.6,
             "risk_level": "MEDIUM",
             "confidence": 0.75,
-            "reason": "Unusually high average transaction value",
+            "explanation": explanation,
             "source": "rule_engine"
         }
 
-    
+    #ML MODEL
+
     ml = predict_risk(features)
 
     prob = ml["confidence"]
-    pred = ml["prediction"]
 
-    #LOW CONFIDENCE SAFETY
+    #LOW CONFIDENCE
 
     if prob < 0.55:
+        explanation = generate_explanation(features)
+
         return {
             "wallet": wallet,
+            "risk_score": round(prob, 2),
             "risk_level": "UNCERTAIN",
             "confidence": round(prob, 2),
-            "reason": "Low confidence ML prediction",
+            "explanation": explanation,
             "source": "ml_model"
         }
 
+    #RISK CALCULATING
     if prob > 0.75:
         risk = "HIGH"
     elif prob > 0.5:
@@ -57,22 +72,15 @@ def assess_wallet_risk(wallet, features):
     else:
         risk = "LOW"
 
-    reasons = []
+    #EXPLANATION PART
 
-    if features["high_risk_interactions"] > 3:
-        reasons.append("Multiple high-value suspicious transactions")
-
-    if features["avg_tx_value"] > 5:
-        reasons.append("High average transaction value")
-
-    if not reasons:
-        reasons.append("Pattern detected via ML model")
-
+    explanation = generate_explanation(features)
 
     return {
         "wallet": wallet,
+        "risk_score": round(prob, 2),
         "risk_level": risk,
         "confidence": round(prob, 2),
-        "reason": ", ".join(reasons),
+        "explanation": explanation,
         "source": "ml_model"
     }

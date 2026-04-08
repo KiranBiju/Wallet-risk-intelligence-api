@@ -1,11 +1,14 @@
 import random
 import time
 from tqdm import tqdm
-from fetch_data import get_transactions
+from scripts.fetch_data import get_transactions
 
 
 def extract_connected_wallets(seed_wallet):
     txs = get_transactions(seed_wallet)
+
+    txs = get_transactions(seed_wallet)
+    print(txs[:2])
 
     connected = set()
 
@@ -48,3 +51,11 @@ def crawl_wallets(seed_wallets, target_size=200):
             continue
 
     return list(all_wallets)
+
+if __name__ == "__main__":
+    seed_wallet = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+
+    wallets = extract_connected_wallets(seed_wallet)
+
+    print("Connected wallets:")
+    print(wallets[:5])
