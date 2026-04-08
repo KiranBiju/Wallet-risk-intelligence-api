@@ -1,3 +1,4 @@
+#TEST WITH RANDOM DATA TO CHECK ML EFFICIENCY
 import random
 from services.risk_service import assess_wallet_risk
 

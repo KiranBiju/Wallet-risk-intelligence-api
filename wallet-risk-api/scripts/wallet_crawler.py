@@ -26,7 +26,7 @@ def crawl_wallets(seed_wallets, target_size=200):
     all_wallets = set(seed_wallets)
     queue = list(seed_wallets)
 
-    print(f"🚀 Starting crawl with {len(seed_wallets)} seed wallets...")
+    print(f"Starting crawl with {len(seed_wallets)} seed wallets...")
 
     while len(all_wallets) < target_size and queue:
         current_wallet = queue.pop(0)
