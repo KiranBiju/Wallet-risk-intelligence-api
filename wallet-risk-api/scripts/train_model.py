@@ -61,17 +61,13 @@ print("Recall:", recall_score(y_test, y_pred))
 print("\nCLASSIFICATION REPORT")
 print(classification_report(y_test, y_pred))
 
-# -----------------------------
-# FEATURE IMPORTANCE
-# -----------------------------
+
 print("\nFEATURE IMPORTANCE")
 importance = dict(zip(FEATURES, model.coef_[0]))
 for k, v in importance.items():
     print(f"{k}: {round(v, 4)}")
 
-# -----------------------------
-# SAVE MODEL (VERSIONED)
-# -----------------------------
+
 joblib.dump(model, "ml/risk_model_v2.pkl")
 joblib.dump(scaler, "ml/scaler_v2.pkl")
 

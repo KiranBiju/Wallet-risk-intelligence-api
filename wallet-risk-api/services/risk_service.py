@@ -18,18 +18,15 @@ def assess_wallet_risk(wallet, features):
 
     #HIGH RISK INTERACTIONS
 
-    ratio = features["high_risk_ratio"]
-
-    if ratio > 0.75:
-       risk = "HIGH"
-       score = 0.9
-
-    elif ratio > 0.5:
-         risk = "MEDIUM"
-         score = 0.7
-
-    else:
-         risk = None
+    if features["high_risk_ratio"] > 0.6:
+        return {
+        "wallet": wallet,
+        "risk_score": 0.9,
+        "risk_level": "HIGH",
+        "confidence": 0.95,
+        "explanation": "High proportion of risky interactions",
+        "source": "rule_engine"
+    }
 
     #ABNORMAL VALUE
 

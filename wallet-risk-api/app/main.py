@@ -40,10 +40,10 @@ async def score_wallet(request: WalletRequest):
 
         #CACHE CHECK
 
-        cached = get_cached(wallet)
-        if cached:
-            logger.info(f"[CACHE HIT] {wallet}")
-            return cached
+        #cached = get_cached(wallet)
+        #if cached:
+            #logger.info(f"[CACHE HIT] {wallet}")
+            #return cached
 
         #FETCH DATA (ASYNC)
 
@@ -68,19 +68,20 @@ async def score_wallet(request: WalletRequest):
         #TIMEOUT FAILSAFE
 
         execution_time = time.time() - start_time
-        if execution_time > 5:
-            logger.warning(f"[TIMEOUT] {execution_time:.2f}s")
 
-            return {
-                "status": "partial",
-                "data": {
-                    "wallet": wallet,
-                    "risk_level": "UNKNOWN",
-                    "confidence": 0.5,
-                    "reason": "Timeout",
-                    "source": "fallback_timeout"
+        if not transactions:
+          logger.warning("[FALLBACK] No transactions fetched")
+
+          return {
+               "status": "partial",
+               "data": {
+                   "wallet": wallet,
+                   "risk_level": "0.0",
+                   "confidence": 0.75,
+                   "reason": "EMPTY WALLET No transactions found",
+                   "source": "data_unavailable"
                 }
-            }
+           }
 
         #FINAL RESPONSE
 
@@ -102,7 +103,7 @@ async def score_wallet(request: WalletRequest):
 
         #STORING CACHE 
 
-        set_cache(wallet, response)
+        #set_cache(wallet, response)
 
         return response
 

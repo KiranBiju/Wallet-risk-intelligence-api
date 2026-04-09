@@ -27,7 +27,7 @@ def predict_risk(features):
         prob = model.predict_proba(X_scaled)[0][1]
         pred = model.predict(X_scaled)[0]
 
-        confidence = float(prob)
+        confidence = min(0.95, max(0.55, prob))
 
         #LOGGING
 
