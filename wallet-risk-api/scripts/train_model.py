@@ -10,16 +10,23 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, class
 
 df = pd.read_csv("db/wallet_dataset.csv")
 
+df["high_risk_ratio"] = df["high_risk_interactions"] / df["tx_frequency"]
+df["high_risk_ratio"] = df["high_risk_ratio"].fillna(0)
+
+
 FEATURES = [
     "tx_frequency",
     "avg_tx_value",
     "unique_interactions",
     "contract_calls",
-    "high_risk_interactions"
+    "high_risk_interactions",
+    "high_risk_ratio"   
 ]
 
 X = df[FEATURES]
 y = df["label"]
+
+#TRAIN TEST SPLIT
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
@@ -54,16 +61,18 @@ print("Recall:", recall_score(y_test, y_pred))
 print("\nCLASSIFICATION REPORT")
 print(classification_report(y_test, y_pred))
 
-#FEATURE IMPORTANCE
-
+# -----------------------------
+# FEATURE IMPORTANCE
+# -----------------------------
 print("\nFEATURE IMPORTANCE")
 importance = dict(zip(FEATURES, model.coef_[0]))
 for k, v in importance.items():
     print(f"{k}: {round(v, 4)}")
 
-#SAVE MODEL
+# -----------------------------
+# SAVE MODEL (VERSIONED)
+# -----------------------------
+joblib.dump(model, "ml/risk_model_v2.pkl")
+joblib.dump(scaler, "ml/scaler_v2.pkl")
 
-joblib.dump(model, "ml/risk_model_v1.pkl")
-joblib.dump(scaler, "ml/scaler_v1.pkl")
-
-print("\nModel + Scaler saved (v1)")
+print("\nModel + Scaler saved (v2)")

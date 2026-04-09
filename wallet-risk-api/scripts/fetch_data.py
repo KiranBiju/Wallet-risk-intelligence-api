@@ -21,8 +21,8 @@ def get_transactions(wallet_address, max_pages=2):
             "endblock": 99999999,
             "page": page,
             "offset": 100,
-            "sort": "desc",
             "chainid": 1,
+            "sort": "desc",
             "apikey": API_KEY
         }
 
@@ -30,7 +30,12 @@ def get_transactions(wallet_address, max_pages=2):
             response = requests.get(BASE_URL, params=params, timeout=10)
             data = response.json()
 
+            #DEBUG LOG
+            print("ETHERSCAN STATUS:", data.get("status"))
+            print("MESSAGE:", data.get("message"))
+
             if data.get("status") != "1":
+                print("API ERROR:", data)
                 return []
 
             txs = data.get("result", [])
@@ -41,14 +46,10 @@ def get_transactions(wallet_address, max_pages=2):
             all_txs.extend(txs)
 
         except Exception as e:
-            print("Error:", e)
+            print("FETCH ERROR:", e)
             return []
 
+    print("FINAL TX COUNT:", len(all_txs))
+    print(f"TOTAL Txn FETCHED: {len(all_txs)}")
     return all_txs
 
-if __name__ == "__main__":
-    wallet = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
-    txs = get_transactions(wallet)
-    
-    print(f"Total Transactions: {len(txs)}")
-    print(txs[:2])
