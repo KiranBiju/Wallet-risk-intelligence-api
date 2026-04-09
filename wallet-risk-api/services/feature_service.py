@@ -1,38 +1,41 @@
-def extract_features(transactions):
+from collections import defaultdict
+
+def build_features(transactions):
+
     if not transactions:
         return {
             "tx_frequency": 0,
             "avg_tx_value": 0,
             "unique_interactions": 0,
+            "contract_calls": 0,
             "high_risk_interactions": 0
         }
 
-    tx_frequency = len(transactions)
+    tx_count = len(transactions)
 
-    values = []
+    total_value = 0
     unique_addresses = set()
-    high_risk_count = 0
+    contract_calls = 0
+    high_risk = 0
 
-    
-    #Wei → ETH
     for tx in transactions:
-        value_wei = int(tx.get("value", 0))
-        value_eth = value_wei / 1e18
-        values.append(value_eth)
 
-        #Track unique interactions
-        to_addr = tx.get("to")
-        if to_addr:
-            unique_addresses.add(to_addr.lower())
+        value = int(tx["value"]) / 1e18  # ETH
+        total_value += value
 
-        if value_eth > 10:  # large transfer
-            high_risk_count += 1
+        unique_addresses.add(tx["to"])
 
-    avg_tx_value = sum(values) / len(values) if values else 0
+        #CONTRACT INTERACTION
+        if tx["input"] != "0x":
+            contract_calls += 1
+
+        if value < 0.01:
+            high_risk += 1
 
     return {
-        "tx_frequency": tx_frequency,
-        "avg_tx_value": round(avg_tx_value, 6),
+        "tx_frequency": tx_count,
+        "avg_tx_value": total_value / tx_count,
         "unique_interactions": len(unique_addresses),
-        "high_risk_interactions": high_risk_count
+        "contract_calls": contract_calls,
+        "high_risk_interactions": high_risk
     }
