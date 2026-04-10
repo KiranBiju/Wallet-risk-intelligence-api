@@ -49,8 +49,8 @@ async def score_wallet(request: WalletRequest):
 
         fetch_start = time.time()
         transactions = await fetch_wallet_data(wallet)
-        print("🔥 API TX COUNT:", len(transactions))
-        print("🔥 SAMPLE TX:", transactions[:1] if transactions else "EMPTY")
+        print("API TX COUNT:", len(transactions))
+        print("SAMPLE TX:", transactions[:1] if transactions else "EMPTY")
         logger.info(f"[DATA] {len(transactions)} txns | {time.time() - fetch_start:.2f}s")
 
         #FEATURE EXTRACTION
