@@ -40,17 +40,17 @@ async def score_wallet(request: WalletRequest):
 
         #CACHE CHECK
 
-        #cached = get_cached(wallet)
-        #if cached:
-            #logger.info(f"[CACHE HIT] {wallet}")
-            #return cached
+        cached = get_cached(wallet)
+        if cached:
+            logger.info(f"[CACHE HIT] {wallet}")
+            return cached
 
         #FETCH DATA (ASYNC)
 
         fetch_start = time.time()
         transactions = await fetch_wallet_data(wallet)
-        print("🔥 API TX COUNT:", len(transactions))
-        print("🔥 SAMPLE TX:", transactions[:1] if transactions else "EMPTY")
+        print("API TX COUNT:", len(transactions))
+        print("SAMPLE TX:", transactions[:1] if transactions else "EMPTY")
         logger.info(f"[DATA] {len(transactions)} txns | {time.time() - fetch_start:.2f}s")
 
         #FEATURE EXTRACTION
