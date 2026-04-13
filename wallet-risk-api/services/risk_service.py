@@ -16,23 +16,24 @@ def assess_wallet_risk(wallet, features):
     total_tx = max(tx_frequency, 1)
     high_risk_ratio = high_risk_interactions / total_tx
 
-    # ---------------- RULE ENGINE ---------------- #
+    decision_path = []
+
 
     if tx_frequency == 0:
-        logger.info("[RULE] No transactions → LOW risk")
+        decision_path.append("RULE: NO_TX")
 
         risk_result = {
             "wallet": wallet,
             "risk_score": 0.0,
             "risk_level": "LOW",
             "confidence": 1.0,
-            "reason": "No transactions detected",
-            "explanation": "Wallet has no transaction history. No risk signals found.",
+            "reason": "No transactions",
+            "explanation": "No transactions have been made by this wallet. No risk signals detected.",
             "source": "rule_engine"
         }
 
     elif high_risk_ratio > 0.6:
-        logger.info("[RULE] High risk interaction ratio")
+        decision_path.append("RULE: HIGH_RISK_RATIO")
 
         risk_result = {
             "wallet": wallet,
@@ -40,12 +41,12 @@ def assess_wallet_risk(wallet, features):
             "risk_level": "HIGH",
             "confidence": 0.95,
             "reason": "High risky interaction ratio",
-            "explanation": "Large proportion of transactions are flagged as high-risk.",
+            "explanation": "A large proportion of transactions are classified as risky.",
             "source": "rule_engine"
         }
 
     elif avg_tx_value > 10:
-        logger.info("[RULE] High average transaction value")
+        decision_path.append("RULE: HIGH_VALUE")
 
         risk_result = {
             "wallet": wallet,
@@ -53,14 +54,13 @@ def assess_wallet_risk(wallet, features):
             "risk_level": "MEDIUM",
             "confidence": 0.75,
             "reason": "High value transfers",
-            "explanation": "Unusually high average transaction value detected.",
+            "explanation": "This wallet performs unusually high-value transactions.",
             "source": "rule_engine"
         }
 
-    # ---------------- ML MODEL ---------------- #
-
     else:
-        logger.info("[ML] Falling back to ML model")
+        
+        decision_path.append("ML_MODEL")
 
         ml = predict_risk(features)
         prob = ml.get("confidence", 0.0)
@@ -68,15 +68,15 @@ def assess_wallet_risk(wallet, features):
         if prob >= 0.75:
             risk = "HIGH"
             reason = "High ML risk score"
-            explanation = "Model detected strong suspicious behavioral patterns."
+            explanation = "Model detected strong suspicious behavioral signals."
         elif prob >= 0.55:
             risk = "MEDIUM"
             reason = "Moderate ML risk score"
-            explanation = "Model detected some unusual behavioral signals."
+            explanation = "Model detected some unusual patterns."
         else:
             risk = "LOW"
             reason = "Low ML risk score"
-            explanation = "Behavior appears mostly normal based on model."
+            explanation = "Behavior appears mostly normal."
 
         risk_result = {
             "wallet": wallet,
@@ -88,39 +88,65 @@ def assess_wallet_risk(wallet, features):
             "source": "ml_model"
         }
 
-    # ---------------- RAG (EXPLANATION ONLY) ---------------- #
+    # RAG LAYER (ONLY IF NOT LOW)
 
     patterns = []
 
     if risk_result["risk_level"] != "LOW":
-        logger.info("[RAG] Running pattern retrieval")
+        decision_path.append("RAG")
 
         try:
             feature_text = features_to_text(features)
             rag_output = retrieve_patterns(feature_text)
 
-            patterns = rag_output if isinstance(rag_output, list) else []
+            if isinstance(rag_output, list):
+                patterns = rag_output
+            else:
+                patterns = []
+
+            logger.info(f"[RAG] Retrieved patterns: {patterns}")
 
         except Exception as e:
             logger.error(f"[RAG ERROR] {str(e)}")
             patterns = []
 
-    # ---------------- ENRICH EXPLANATION ---------------- #
+   
 
     risk_result["patterns_matched"] = patterns
 
     if patterns:
-        pattern_names = [p.get("pattern", "") for p in patterns[:3]]
-        pattern_summary = ", ".join(pattern_names)
+        pattern_names = [
+            p.get("pattern") 
+            for p in patterns[:3] 
+            if p.get("pattern")
+        ]
 
-        risk_result["explanation"] += f" Related patterns: {pattern_summary}."
+        if pattern_names:
+            pattern_summary = ", ".join(pattern_names)
+            risk_result["explanation"] += f" Related patterns detected: {pattern_summary}."
 
-    logger.info(f"[RESULT] {risk_result['risk_level']} risk computed")
+    
+    else:
+        if risk_result["risk_level"] == "HIGH":
+            risk_result["explanation"] += " High risk due to frequent suspicious interactions."
+        elif risk_result["risk_level"] == "MEDIUM":
+            risk_result["explanation"] += " Moderate risk due to unusual activity patterns."
+        else:
+            risk_result["explanation"] += " No strong scam patterns matched, but behavioral anomalies were detected."    
+
+
+    risk_result["explainability"] = {
+        "ml_features": features,
+        "decision_path": " → ".join(decision_path),
+        "pattern_count": len(patterns)
+    }
+
+    logger.info(f"[FINAL RESULT] {risk_result['risk_level']} risk")
 
     return risk_result
 
 
-# ---------------- FEATURE → TEXT (RAG INPUT) ---------------- #
+#FEATURE → TEXT (FOR RAG)
 
 def features_to_text(features):
 
@@ -129,45 +155,35 @@ def features_to_text(features):
     unique_interactions = features.get('unique_interactions', 0)
     contract_calls = features.get('contract_calls', 0)
     high_risk_interactions = features.get('high_risk_interactions', 0)
+    high_risk_ratio = features.get('high_risk_ratio', 0)
 
-    HIGH_TX, MED_TX = 100, 30
-    HIGH_VALUE, MED_VALUE = 10, 1
-    HIGH_UNIQUE, MED_UNIQUE = 50, 10
-    HIGH_CONTRACT, MED_CONTRACT = 50, 10
-    HIGH_RISK = 10
+    signals = []
 
-    freq_desc = (
-        f"high freq tx ({tx_frequency})" if tx_frequency > HIGH_TX else
-        f"mid freq tx ({tx_frequency})" if tx_frequency > MED_TX else
-        f"low freq tx ({tx_frequency})"
-    )
+    if tx_frequency > 80:
+        signals.append("high frequency activity")
+    elif tx_frequency > 30:
+        signals.append("moderate transaction activity")
 
-    value_desc = (
-        f"high value ({avg_tx_value})" if avg_tx_value > HIGH_VALUE else
-        f"mid value ({avg_tx_value})" if avg_tx_value > MED_VALUE else
-        f"low value ({avg_tx_value})"
-    )
+    if avg_tx_value > 100:
+        signals.append("large transfer anomaly")
+    elif avg_tx_value > 10:
+        signals.append("high value transfers")
 
-    interaction_desc = (
-        f"broad network ({unique_interactions})" if unique_interactions > HIGH_UNIQUE else
-        f"moderate network ({unique_interactions})" if unique_interactions > MED_UNIQUE else
-        f"limited network ({unique_interactions})"
-    )
+    if unique_interactions < 5:
+        signals.append("single counterparty dependency")
+    elif unique_interactions > 50:
+        signals.append("broad interaction network")
 
-    contract_desc = (
-        f"heavy contract use ({contract_calls})" if contract_calls > HIGH_CONTRACT else
-        f"moderate contracts ({contract_calls})" if contract_calls > MED_CONTRACT else
-        f"low contracts ({contract_calls})"
-    )
+    if contract_calls > 50:
+        signals.append("heavy contract interaction")
 
-    risk_desc = (
-        f"high suspicious ({high_risk_interactions})" if high_risk_interactions > HIGH_RISK else
-        f"some suspicious ({high_risk_interactions})" if high_risk_interactions > 0 else
-        "clean"
-    )
+    if high_risk_ratio > 0.7:
+        signals.append("flagged wallet interaction")
+        signals.append("fund drain pattern")
+    elif high_risk_ratio > 0.3:
+        signals.append("suspicious interaction pattern")
 
-    return (
-        f"tx:{freq_desc} | value:{value_desc} | "
-        f"net:{interaction_desc} | contract:{contract_desc} | "
-        f"risk:{risk_desc}"
-    )
+    if not signals:
+        signals.append("normal wallet behavior")
+
+    return " | ".join(signals)

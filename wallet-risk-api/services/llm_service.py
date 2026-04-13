@@ -1,187 +1,132 @@
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv
-import json
-import os
 import logging
-import re
-
-load_dotenv()
-
-llm = ChatGroq(
-    model="llama-3.1-70b-versatile",
-    temperature=0.3,
-    api_key=os.getenv("GROQ_API_KEY")
-)
+from services.model_service import predict_risk
+from services.rag_service import retrieve_patterns
+from services.llm_service import generate_explanation
+from services.feature_service import features_to_text
 
 logger = logging.getLogger(__name__)
 
 
+def assess_wallet_risk(wallet, features):
 
-def extract_json(content: str):
-    """
-    Extract JSON even if LLM wraps it in markdown/text.
-    """
-    try:
-        content = re.sub(r"```json|```", "", content).strip()
+    logger.info(f"[RISK] Starting assessment for wallet: {wallet}")
 
-        # extract first JSON object
-        start = content.find("{")
-        end = content.rfind("}") + 1
+    tx_frequency = features.get("tx_frequency", 0)
+    avg_tx_value = features.get("avg_tx_value", 0)
+    high_risk_interactions = features.get("high_risk_interactions", 0)
 
-        if start == -1 or end == 0:
-            return None
+    total_tx = max(tx_frequency, 1)
+    high_risk_ratio = high_risk_interactions / total_tx
 
-        json_str = content[start:end]
-        return json.loads(json_str)
+    
 
-    except Exception:
-        return None
-
-
-
-def validate_output(data):
-    if not isinstance(data, dict):
-        return False
-
-    required_keys = ["explanation", "key_risk_factors", "verdict"]
-
-    if not all(k in data for k in required_keys):
-        return False
-
-    if not isinstance(data["key_risk_factors"], list):
-        return False
-
-    return True
-
-
-
-
-def format_features(features):
-    if not features:
-        return "NO_FEATURES_AVAILABLE"
-
-    return (
-        f"tx_frequency={features.get('tx_frequency', 0)}, "
-        f"avg_tx_value={features.get('avg_tx_value', 0)}, "
-        f"unique_interactions={features.get('unique_interactions', 0)}, "
-        f"contract_calls={features.get('contract_calls', 0)}, "
-        f"high_risk_interactions={features.get('high_risk_interactions', 0)}"
-    )
-
-
-
-
-def format_patterns(patterns):
-    if not patterns:
-        return "none"
-
-    clean = []
-
-    for p in patterns[:5]:
-        if isinstance(p, dict):
-            name = p.get("name") or p.get("pattern") or str(p)
-            desc = p.get("description", "")
-
-            
-            if desc:
-                desc = desc[:120] + "..." if len(desc) > 120 else desc
-                clean.append(f"{name} ({desc})")
-            else:
-                clean.append(name)
-        else:
-            clean.append(str(p))
-
-    return ", ".join(clean)
-
-
-
-
-def normalize_verdict(v):
-    v = str(v).upper()
-
-    if "HIGH" in v:
-        return "HIGH"
-    if "MED" in v:
-        return "MEDIUM"
-    if "LOW" in v:
-        return "LOW"
-
-    return "MEDIUM"  # safe default
-
-
-def generate_explanation(risk_score, risk_level, features, patterns):
-
-    if not features:
+    if tx_frequency == 0:
         return {
-            "explanation": "No feature data available for risk analysis.",
-            "key_risk_factors": ["missing features"],
-            "verdict": "UNKNOWN"
+            "wallet": wallet,
+            "risk_score": 0.0,
+            "risk_level": "LOW",
+            "confidence": 1.0,
+            "explanation": {
+                "summary": "No transaction history detected",
+                "key_risk_factors": [],
+                "verdict": "LOW"
+            },
+            "source": "rule_engine"
         }
 
-    clean_features = format_features(features)
-    clean_patterns = format_patterns(patterns)
-
-    prompt = f"""
-You are a crypto risk analyst.
-
-Risk Level: {risk_level}
-Risk Score: {risk_score}
-
-Features Summary:
-{clean_features}
-
-Matched Scam Patterns:
-{clean_patterns}
-
-Return STRICT JSON:
-{{
-  "explanation": "...",
-  "key_risk_factors": ["...", "..."],
-  "verdict": "LOW|MEDIUM|HIGH"
-}}
-"""
-
-    logger.info("LLM_CALL_START | risk=%s | patterns=%s", risk_level, clean_patterns)
-
-    try:
-        response = llm.invoke(prompt, timeout=8)
-        content = response.content
-
-        logger.info("LLM_RAW_RESPONSE_RECEIVED")
-
-        parsed = extract_json(content)
-
-        
-        if parsed and validate_output(parsed):
-
-            parsed["verdict"] = normalize_verdict(parsed["verdict"])
-
-            logger.info("LLM_JSON_VALID_SUCCESS")
-            return parsed
-
-        logger.warning("LLM_INVALID_OUTPUT | fallback triggered")
-
+    elif high_risk_ratio > 0.6:
         return {
-            "explanation": (
-                f"Wallet shows {risk_level} risk level. "
-                f"Behavioral anomalies detected via transaction patterns "
-                f"and interaction signals."
-            ),
-            "key_risk_factors": [
-                "transaction anomalies",
-                f"patterns: {clean_patterns}"
-            ],
-            "verdict": normalize_verdict(risk_level)
+            "wallet": wallet,
+            "risk_score": 0.9,
+            "risk_level": "HIGH",
+            "confidence": 0.95,
+            "explanation": {
+                "summary": "High proportion of suspicious interactions",
+                "key_risk_factors": ["high-risk transactions"],
+                "verdict": "HIGH"
+            },
+            "source": "rule_engine"
         }
 
+    elif avg_tx_value > 10:
+        return {
+            "wallet": wallet,
+            "risk_score": 0.6,
+            "risk_level": "MEDIUM",
+            "confidence": 0.75,
+            "explanation": {
+                "summary": "Unusually high transaction values",
+                "key_risk_factors": ["high-value transfers"],
+                "verdict": "MEDIUM"
+            },
+            "source": "rule_engine"
+        }
+
+    
+
+    ml = predict_risk(features)
+    prob = ml.get("confidence")
+
+    if prob is None:
+        logger.error("[ML ERROR] Missing confidence score")
+        prob = 0.5
+
+    if prob >= 0.75:
+        risk_level = "HIGH"
+    elif prob >= 0.55:
+        risk_level = "MEDIUM"
+    else:
+        risk_level = "LOW"
+
+    logger.info(f"[ML] Risk level: {risk_level} | Prob: {prob}")
+
+    
+
+    if risk_level == "LOW":
+        return {
+            "wallet": wallet,
+            "risk_score": round(prob, 2),
+            "risk_level": "LOW",
+            "confidence": round(prob, 2),
+            "explanation": {
+                "summary": "Wallet shows normal behavior with no significant anomalies",
+                "key_risk_factors": [],
+                "verdict": "LOW"
+            },
+            "source": "ml_model"
+        }
+
+
+    try:
+        feature_text = features_to_text(features)
+        patterns = retrieve_patterns(feature_text)
     except Exception as e:
-        logger.error("LLM_CALL_FAILED | error=%s", str(e))
+        logger.error(f"[RAG ERROR] {str(e)}")
+        patterns = []
 
-        return {
-            "explanation": (
-                f"System-based analysis indicates {risk_level} risk level "
-                f"with detected irregular blockchain activity patterns."
-            ),
-            "key_risk_factors": ["system-level detection"],
-            "verdict": "UNKNOWN"
+
+    try:
+        llm_output = generate_explanation(
+            risk_score=prob,
+            risk_level=risk_level,
+            features=features,
+            patterns=patterns
+        )
+    except Exception as e:
+        logger.error(f"[LLM ERROR] {str(e)}")
+
+        llm_output = {
+            "summary": f"{risk_level} risk detected based on ML + RAG signals",
+            "key_risk_factors": ["behavioral anomalies", "transaction patterns"],
+            "verdict": risk_level
         }
+
+    return {
+        "wallet": wallet,
+        "risk_score": round(prob, 2),
+        "risk_level": risk_level,
+        "confidence": round(prob, 2),
+        "explanation": llm_output,
+        "patterns_matched": patterns,
+        "source": "ml_rag_llm"
+    }

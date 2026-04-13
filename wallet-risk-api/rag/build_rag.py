@@ -5,62 +5,82 @@ import numpy as np
 
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+print("Building RAG Index...")
 
-with open('rag/scam_patterns.json', 'r') as file:
+#LOAD MODEL
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+#LOAD DATA
+with open("rag/scam_patterns.json", "r") as file:
     data = json.load(file)
 
 if not data:
     print("No data found. Exiting.")
-    exit()    
+    exit()
 
-def combine_fields(item):
-    text = f"{item['pattern']} {item['type']} {item['description']}"
-    return text.lower()
 
-texts = [combine_fields(item) for item in data]
+#TEXT BUILDER
+
+def build_text(item):
+    return (
+        f"Pattern: {item.get('pattern', '')}. "
+        f"Type: {item.get('type', '')}. "
+        f"Severity: {item.get('severity', '')}. "
+        f"Description: {item.get('description', '')}."
+    ).lower()
+
+
+documents = []
+texts = []
+
+for item in data:
+
+    #VALIDATION
+
+    if not item.get("pattern"):
+        continue
+
+    text = build_text(item)
+
+    documents.append({
+        "id": item.get("id"),
+        "pattern": item.get("pattern"),
+        "type": item.get("type"),
+        "severity": item.get("severity"),
+        "description": item.get("description"),
+        "text": text
+    })
+
+    texts.append(text)
+
 
 if len(texts) == 0:
     print("No valid texts to encode.")
     exit()
 
-documents = []
 
-for item in data:
-    text = combine_fields(item)
+#EMBEDDINGS
 
-    documents.append({
-        "text": text,
-        "metadata": item
-    })
+vectors = model.encode(texts, convert_to_numpy=True)
 
-texts = [doc["text"] for doc in documents]
+print(f"Vectors: {len(vectors)}")
+print(f"Dimension: {vectors.shape}")
 
-#VECTOR EMBEDDING
 
-vectors = model.encode(texts, convert_to_tensor=False)
+#FAISS INDEX
 
-print(f"Number of vectors generated: {len(vectors)}")
-print(f"Dimension of each vector: {vectors[0].shape}")
-
-#FAISS
-
-embeddings = np.array(vectors, dtype=np.float32)
-
-dimension = embeddings.shape[1]
+dimension = vectors.shape[1]
 
 index = faiss.IndexFlatL2(dimension)
-
-index.add(embeddings) 
-
-D, I = index.search(vectors, k=5)
+index.add(vectors)
 
 print("Index size:", index.ntotal)
 
-# SAVE FAISS INDEX
+
 faiss.write_index(index, "rag/faiss_index.bin")
 
 with open("rag/patterns.pkl", "wb") as f:
     pickle.dump(documents, f)
 
-print("Saved index and metadata successfully")
+print("Saved index + metadata successfully")

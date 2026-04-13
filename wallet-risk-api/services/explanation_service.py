@@ -1,11 +1,20 @@
-def generate_explanation(features):
-    if features["tx_frequency"] > 100:
-        return "High transaction frequency detected"
+def generate_explanation(features, patterns=None):
 
-    if features["avg_tx_value"] > 5:
-        return "Large average transaction value"
+    try:
+        # MOCK LLM (Deterministic)
+        if features["high_risk_ratio"] > 0.7:
+            explanation = "High risk due to high proportion of risky interactions."
+        elif features["tx_frequency"] > 200:
+            explanation = "Unusual high transaction frequency detected."
+        else:
+            explanation = "Normal transaction behavior."
 
-    if features["high_risk_interactions"] > 3:
-        return "Multiple high-risk interactions detected"
+        if patterns:
+            pattern_names = [p["pattern"] for p in patterns]
+            explanation += f" Detected patterns: {', '.join(pattern_names)}"
 
-    return "Normal transaction behavior"
+        print("[LLM] Generated explanation")
+        return explanation
+
+    except Exception:
+        return "Risk detected based on abnormal activity patterns."

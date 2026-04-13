@@ -87,23 +87,12 @@ async def score_wallet(request: WalletRequest):
 
         response = {
             "status": "success",
-            "data": {
-                "wallet": wallet,
-                "risk_score": result["risk_score"],
-                "risk_level": result["risk_level"],
-                "confidence": result["confidence"],
-                "features": features,
-                "explanation": result["explanation"],
-                "source": result["source"],
-                "model_version": "v1",
-                "timestamp": datetime.utcnow().isoformat(),
-                "note": "Hybrid (Rules + ML + Intelligence Layer)"
-            }
+            "data": result
         }
 
         #STORING CACHE 
 
-        #set_cache(wallet, response)
+        set_cache(wallet, response)
 
         return response
 
