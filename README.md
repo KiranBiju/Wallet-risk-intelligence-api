@@ -54,6 +54,7 @@ Client (Swagger / API User)
 
 * **Backend**: FastAPI
 * **ML / NLP**: Sentence Transformers (`all-MiniLM-L6-v2`)
+* **LLM**: Groq
 * **Vector DB**: FAISS
 * **Database**: PostgreSQL
 * **Cache**: Redis
