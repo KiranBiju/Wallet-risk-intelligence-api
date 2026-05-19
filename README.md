@@ -1,5 +1,10 @@
 # 🚀 Wallet Risk Intelligence API
 
+<p align="center">
+  <img src="wallet-risk-api/assets/thumnail.png" width="850"/>
+</p>
+
+
 > **Production-grade AI + Blockchain Risk Scoring System**
 > Detect scams, fraudulent wallets, and suspicious on-chain behavior **before transactions happen**
 
@@ -29,10 +34,14 @@ Wallet Risk Intelligence API is a **high-performance backend system** that analy
 
 ---
 
+[![Watch the demo](wallet-risk-api/assets/thumbnail.png)](https://drive.google.com/file/d/1N9_oiaAKqsl3diC_FsJ1xmbL1phI9dRK/view?usp=sharing)
+
+---
+
 ## 🏗 Architecture
 
 ```
-Client (Swagger / API User)
+Client (Streamlit Frontend / API User)
             ↓
       FastAPI Backend
             ↓
@@ -53,6 +62,7 @@ Client (Swagger / API User)
 ## ⚙️ Tech Stack
 
 * **Backend**: FastAPI
+* **Frontend**: Streamlit
 * **ML / NLP**: Sentence Transformers (`all-MiniLM-L6-v2`)
 * **LLM**: Groq
 * **Vector DB**: FAISS
@@ -70,9 +80,17 @@ wallet-risk-api/
 │
 ├── app/
 │   ├── main.py
+│──assets/
+│   ├── demo.wdmb
+│   └── thumnail.png
+│   └── working.png
 │──db/
 │   ├── db.py
 │   └── models.py
+│──frontend/
+│   ├── streamli.py
+│   └── requirements.txt
+│   └── Dockerfile
 ├── schemas/
 |    ├── risk_schema.py
 │── services/
@@ -112,7 +130,23 @@ cd wallet-risk-api
 
 ---
 
-### 2️⃣ Install Dependencies
+### 2️⃣ Create and Activate Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+```bash
+Windows: venv\Scripts\activate
+```
+
+```bash
+Linux: source venv/bin/activate
+```
+
+---
+
+### 3️⃣ Install Backend Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -120,7 +154,27 @@ pip install -r requirements.txt
 
 ---
 
-### 3️⃣ Build RAG Index
+### 4️⃣ Install Frontend Dependencies
+
+```bash
+pip install -r frontend/requirements.txt
+```
+
+---
+
+### 5️⃣ Create Your .env
+
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/wallet_db
+REDIS_HOST=localhost
+REDIS_PORT=6379
+ETHERSCAN_API_KEY=your_etherscan_api_key
+GROQ_API_KEY=your_groq_api_key
+```
+
+---
+
+### 6️⃣ Build the RAG Index
 
 ```bash
 python -m rag.build_rag
@@ -128,7 +182,7 @@ python -m rag.build_rag
 
 ---
 
-### 4️⃣ Run API Locally
+### 7️⃣ Start the FastAPI Backend
 
 ```bash
 uvicorn app.main:app --reload
@@ -136,6 +190,17 @@ uvicorn app.main:app --reload
 
 👉 Open Swagger UI:
 http://127.0.0.1:8000/docs
+
+---
+
+### 7️⃣ Start the Streamlit Frontend
+
+```bash
+streamlit run frontend/streamlit_app.py
+```
+
+👉 Open Streamlit UI:
+Streamlit UI: http://localhost:8501
 
 ---
 
@@ -149,24 +214,13 @@ docker-compose up --build
 
 | Service    | Port |
 | ---------- | ---- |
-| API        | 8000 |
-| PostgreSQL | 5432 |
-| Redis      | 6379 |
+| Backend    | http://localhost:8000/docs |
+| Frontend   | http://localhost:8501 |
+| PostgreSQL | localhost:5432 |
+| Redis      | localhost:6379 |
 
 ---
 
-## 🔐 Environment Variables (.env)
-
-Create a `.env` file:
-
-```
-DATABASE_URL=postgresql://user:password@db:5432/wallet_db
-REDIS_HOST=redis
-REDIS_PORT=6379
-ETHERSCAN_API_KEY=your_api_key
-```
-
----
 
 ## 📡 API Endpoint
 
@@ -238,6 +292,12 @@ ETHERSCAN_API_KEY=your_api_key
 
 ---
 
+<p align="center">
+  <img src="wallet-risk-api/assets/working.png" width="850"/>
+</p>
+
+---
+
 ## 📊 Example Risk Patterns
 
 * Rug Pull
@@ -280,7 +340,6 @@ ETHERSCAN_API_KEY=your_api_key
 
 * Multi-chain support (Polygon, BSC)
 * ML-based anomaly detection
-* Dashboard (React)
 * Graph-based wallet clustering
 * Real-time monitoring
 * Web3 wallet integration
