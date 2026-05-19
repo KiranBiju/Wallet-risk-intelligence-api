@@ -2,7 +2,8 @@ import logging
 import time
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
-
+from db.db import SessionLocal
+from db.models import RiskReport
 from schemas.risk_schema import WalletRequest
 from services.cache_service import get_cached, set_cache
 from services.risk_service import assess_wallet_risk
@@ -76,7 +77,7 @@ async def score_wallet(request: WalletRequest):
                "status": "partial",
                "data": {
                    "wallet": wallet,
-                   "risk_level": "0.0",
+                   "risk_level": "UNKNOWN",
                    "confidence": 0.75,
                    "reason": "EMPTY WALLET No transactions found",
                    "source": "data_unavailable"
@@ -85,12 +86,34 @@ async def score_wallet(request: WalletRequest):
 
         #FINAL RESPONSE
 
+        # FINAL RESPONSE
+
         response = {
             "status": "success",
             "data": result
         }
 
-        #STORING CACHE 
+#STORE IN DATABASE
+
+        try:
+            db = SessionLocal()
+
+            db.add(RiskReport(
+               wallet=wallet,
+               risk_level=result.get("risk_level"),
+               confidence=result.get("confidence")
+            ))
+
+            db.commit()
+            db.close()
+
+            logger.info(f"[DB] Stored risk report for {wallet}")
+
+        except Exception as db_error:
+            logger.error(f"[DB ERROR] {wallet} | {str(db_error)}")
+
+
+        #STORE IN CACHE
 
         set_cache(wallet, response)
 
