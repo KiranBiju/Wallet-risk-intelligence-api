@@ -33,8 +33,9 @@ Wallet Risk Intelligence API is a **high-performance backend system** that analy
 * 🧾 Store historical risk reports
 
 ---
+## 🔥 Demo Video
 
-[![Watch the demo](wallet-risk-api/assets/thumbnail.png)](https://drive.google.com/file/d/1N9_oiaAKqsl3diC_FsJ1xmbL1phI9dRK/view?usp=sharing)
+[Watch the demo](https://drive.google.com/file/d/1N9_oiaAKqsl3diC_FsJ1xmbL1phI9dRK/view?usp=sharing)
 
 ---
 
