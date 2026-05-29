@@ -1,4 +1,4 @@
-# 🚀 Wallet Risk Intelligence API
+# 🚀 Wallet Risk Intelligence Platform
 
 <p align="center">
   <img src="wallet-risk-api/assets/thumnail.png" width="850"/>
@@ -12,12 +12,12 @@
 
 ## 🔥 Overview
 
-Wallet Risk Intelligence API is a **high-performance backend system** that analyzes Ethereum wallet activity in real-time and assigns a **risk score, level, and explainable reasoning** using:
+Wallet Risk Intelligence Platform is a **high-performance backend system** that analyzes Ethereum wallet activity in real-time and assigns a **risk score, level, and explainable reasoning** using:
 
 * 📊 Feature Engineering (on-chain signals)
 * 🧠 Rule-based Risk Engine
 * 🤖 RAG (Retrieval-Augmented Generation) with FAISS
-* ⚡ FastAPI (low-latency API)
+* ⚡ FastAPI (low-latency backend)
 * 🗄 PostgreSQL (persistent storage)
 * 🧩 Redis (caching layer)
 
@@ -29,7 +29,7 @@ Wallet Risk Intelligence API is a **high-performance backend system** that analy
 * ⚠️ Detect scam patterns (rug pull, phishing, wash trading, etc.)
 * 📈 Generate explainable risk scores
 * 🧬 Combine ML + Rule Engine + RAG
-* ⚡ Sub-second API responses (with caching)
+* ⚡ Sub-second backend responses (with caching)
 * 🧾 Store historical risk reports
 
 ---
