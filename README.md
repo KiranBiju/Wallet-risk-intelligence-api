@@ -153,15 +153,7 @@ pip install -r requirements.txt
 
 ---
 
-###  Install Frontend Dependencies
-
-```bash
-pip install -r frontend/requirements.txt
-```
-
----
-
-### 4️⃣Create Your .env
+### 4️⃣ Create Your .env
 
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/wallet_db
