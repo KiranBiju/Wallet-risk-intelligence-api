@@ -42,20 +42,20 @@ Wallet Risk Intelligence Platform is a **high-performance backend system** that 
 ## 🏗 Architecture
 
 ```
-Client (Streamlit Frontend / API User)
-            ↓
-      FastAPI Backend
-            ↓
+       Client (Streamlit Frontend / API User)
+                        ↓
+                 FastAPI Backend
+                        ↓
  ┌───────────────┬───────────────┬───────────────┐
  │ Data Service  │ Feature Engg  │ Risk Engine   │
  │ (Etherscan)   │               │ (Rules + RAG) │
  └───────────────┴───────────────┴───────────────┘
-            ↓
-     FAISS Vector DB (RAG)
-            ↓
-   PostgreSQL (Storage)
-            ↓
-      Redis (Caching)
+                        ↓
+               FAISS Vector DB (RAG)
+                        ↓
+               PostgreSQL (Storage)
+                        ↓
+                 Redis (Caching)
 ```
 
 ---
@@ -65,7 +65,6 @@ Client (Streamlit Frontend / API User)
 * **Backend**: FastAPI
 * **Frontend**: Streamlit
 * **ML / NLP**: Sentence Transformers (`all-MiniLM-L6-v2`)
-* **LLM**: Groq
 * **Vector DB**: FAISS
 * **Database**: PostgreSQL
 * **Cache**: Redis
@@ -125,7 +124,7 @@ wallet-risk-api/
 ### 1️⃣ Clone Repo
 
 ```bash
-git clone https://github.com/your-username/wallet-risk-api.git
+git clone https://github.com/KiranBiju/wallet-risk-api.git
 cd wallet-risk-api
 ```
 
@@ -147,7 +146,7 @@ Linux: source venv/bin/activate
 
 ---
 
-### 3️⃣ Install Backend Dependencies
+### 3️⃣ Install Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -155,7 +154,7 @@ pip install -r requirements.txt
 
 ---
 
-### 4️⃣ Install Frontend Dependencies
+###  Install Frontend Dependencies
 
 ```bash
 pip install -r frontend/requirements.txt
@@ -163,7 +162,7 @@ pip install -r frontend/requirements.txt
 
 ---
 
-### 5️⃣ Create Your .env
+### 4️⃣Create Your .env
 
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/wallet_db
@@ -175,7 +174,7 @@ GROQ_API_KEY=your_groq_api_key
 
 ---
 
-### 6️⃣ Build the RAG Index
+### 5️⃣ Build the RAG Index
 
 ```bash
 python -m rag.build_rag
@@ -183,7 +182,7 @@ python -m rag.build_rag
 
 ---
 
-### 7️⃣ Start the FastAPI Backend
+### 6️⃣ Start the FastAPI Backend
 
 ```bash
 uvicorn app.main:app --reload
