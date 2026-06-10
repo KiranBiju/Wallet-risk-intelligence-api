@@ -89,7 +89,6 @@ wallet-risk-api/
 │   └── models.py
 │──frontend/
 │   ├── streamli.py
-│   └── requirements.txt
 │   └── Dockerfile
 ├── schemas/
 |    ├── risk_schema.py
