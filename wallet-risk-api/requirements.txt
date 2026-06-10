@@ -7,6 +7,10 @@ scikit-learn
 joblib
 faiss-cpu
 sentence-transformers
+streamlit>=1.45.0
+requests>=2.32.0
+pandas>=2.2.0
+plotly>=6.0.0
 sqlalchemy
 psycopg2-binary
 redis
